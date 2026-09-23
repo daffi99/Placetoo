@@ -1,7 +1,7 @@
 -- ========================================================
--- PLACETOO DATABASE SCHEMA & INITIAL SEED (NEON POSTGRESQL)
+-- PLACETOO DATABASE SCHEMA & EXACT USER SEED (NEON POSTGRESQL)
 -- ========================================================
--- Jalankan seluruh query ini di Neon Console -> SQL Editor.
+-- Jalankan query ini di Neon Console -> SQL Editor.
 -- ========================================================
 
 -- 1. Buat Tabel "places" jika belum ada
@@ -29,7 +29,7 @@ CREATE TABLE IF NOT EXISTS places (
 CREATE INDEX IF NOT EXISTS idx_places_created_at ON places(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_places_category ON places(category);
 
--- 3. Seed 4 data tempat sesuai screenshot (Asap Isep, Kopi Sabuga, Mugi House, Madaya Coffee)
+-- 3. Seed data 4 tempat persis dari export Anda (Aman dijalankan berulang kali)
 INSERT INTO places (
   id, name, category, lat, lng, address, area,
   price_range, rating, review_count, photo_url,
@@ -37,79 +37,88 @@ INSERT INTO places (
   is_visited, is_favorite, created_at
 ) VALUES 
 (
-  'asap-isep-kadudampit',
+  'place-1790131354799',
   'Asap Isep',
   'coffee',
   -6.841127,
-  106.926975,
-  'BumiBagja Food Forest, Desa Gede Pangrango, Kec. Kadudampit',
+  106.9243952,
+  'Kadudampit, Sukabumi, Jawa Barat, 43153, Indonesia',
   'Kadudampit',
   'Rp 30–60 rb',
   4.8,
   320,
-  'https://tse4.mm.bing.net/th/id/OIP.vCcLW-KMqyUzPdE1MBQCpAAAAA?r=0&pid=Api',
-  'https://www.instagram.com/asap_isep/',
-  'Tempat ngopi syahdu di tengah hutan Kadudampit, adem dan asri banget.',
-  'https://maps.google.com/?q=-6.841127,106.926975',
+  'https://indonesia-az.com/wp-content/uploads/2024/08/Area-depan-Asap-Isep-1024x767.jpeg',
+  NULL,
+  NULL,
+  'https://maps.google.com/?q=-6.841127,106.9243952',
   FALSE,
   FALSE,
-  1774320000000
+  1790131354799
 ),
 (
-  'kopi-sabuga-bogor',
+  'place-1790092927519',
   'Kopi Sabuga',
   'coffee',
-  -6.60417,
-  106.80389,
-  'Jl. Bangka No.16, Baranangsiang, Kec. Bogor Timur',
+  -6.6037549,
+  106.8017841,
+  'Gang Lbk Pasar, Babakan Pasar, Bogor Tengah, Bogor, Jawa Barat, 16126, Indonesia',
   'Bogor',
-  'Rp 25–50 rb',
+  NULL,
   4.7,
   480,
-  'https://tse2.mm.bing.net/th/id/OIP.tjMDY_W2p2A1uHv62OH99gHaJQ?r=0&pid=Api',
-  'https://www.instagram.com',
-  'Kopi nikmat di tengah kota Bogor dengan suasana santai.',
-  'https://maps.google.com/?q=Kopi+Sabuga+Jalan+Bangka+No.16+Bogor',
+  'https://ugc.production.linktr.ee/ddfd7716-050e-42ea-ad71-6d9d5302b579_IMG-1522.jpeg?io=true&size=avatar-v3_0',
+  NULL,
+  NULL,
+  'https://maps.google.com/?q=-6.6037549,106.8017841',
   FALSE,
   FALSE,
-  1774233600000
+  1790092927519
 ),
 (
-  'mugi-house-jakarta',
+  'place-1790092749118',
   'Mugi House',
   'coffee',
-  -6.23667,
-  106.80917,
-  'Jl. Gunawarman No.16, Selong, Kec. Kebayoran Baru',
+  -6.2358685,
+  106.8049313,
+  '4A, Jalan Kertanegara, Blok K, Selong, Kebayoran Baru, Jakarta Selatan, Daerah Khusus Ibukota Jakarta, 12180, Indonesia',
   'Daerah Khusus Ibukota Jakarta',
-  'Rp 40–80 rb',
+  NULL,
   4.8,
   260,
-  'https://tse4.mm.bing.net/th/id/OIP.COC85r_6e4uuvYKVIh9PywHaNJ?r=0&pid=Api',
-  'https://www.instagram.com',
-  'Kafe aesthetic di area Gunawarman Jaksel.',
-  'https://maps.google.com/?q=Mugi+House+Gunawarman+Jakarta',
+  'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRWnDYjzBiajlgvAZ94eW25F77Nga8YFY080PWBmV0gEfado8SRTxlKu4fw&s=10',
+  NULL,
+  NULL,
+  'https://maps.google.com/?q=-6.2358685,106.8049313',
   FALSE,
   FALSE,
-  1774147200000
+  1790092749118
 ),
 (
-  'madaya-coffee-kemang',
+  'place-1790092561370',
   'Madaya Coffee',
   'coffee',
-  -6.494799,
-  106.746199,
-  'Kawasan Zona Madina, Jl. Raya Parung No.KM 42, Jampang, Kemang',
+  -6.4735034,
+  106.7283995,
+  'Jampang Kulon, Jampang, Kemang, Bogor, Jawa Barat, 16310, Indonesia',
   'Kemang',
   'Rp 30–60 rb',
   4.9,
   1374,
-  'https://images.unsplash.com/photo-1554118811-1e0d58224f24?auto=format&fit=crop&w=800&q=80',
-  'https://www.threads.net',
-  'Tempatnya cozy banget semi-outdoor, recommended coba donat kampung sama es kopi madaya!',
-  'https://maps.google.com/?q=-6.494799,106.746199',
+  'https://tse2.mm.bing.net/th/id/OIP.AyqMogbDe-cOvuvem798WgHaNK?r=0&pid=Api',
+  NULL,
+  NULL,
+  'https://maps.google.com/?q=-6.4735034,106.7283995',
   FALSE,
-  TRUE,
-  1774060800000
+  FALSE,
+  1790092561370
 )
-ON CONFLICT (id) DO NOTHING;
+ON CONFLICT (id) DO UPDATE SET
+  name = EXCLUDED.name,
+  category = EXCLUDED.category,
+  lat = EXCLUDED.lat,
+  lng = EXCLUDED.lng,
+  address = EXCLUDED.address,
+  area = EXCLUDED.area,
+  price_range = EXCLUDED.price_range,
+  photo_url = EXCLUDED.photo_url,
+  google_maps_url = EXCLUDED.google_maps_url;
