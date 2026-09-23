@@ -31,6 +31,8 @@ export interface ParsedMapsData {
   name?: string;
   lat?: number;
   lng?: number;
+  address?: string;
+  area?: string;
   rawUrl?: string;
 }
 
@@ -41,7 +43,7 @@ export function parseGoogleMapsUrl(input: string): ParsedMapsData {
   const result: ParsedMapsData = { rawUrl: input.trim() };
 
   // Match: .../maps/place/Place+Name/@-6.491234,106.745678,17z/...
-  const placeMatch = input.match(/\/maps\/place\/([^/@]+)/);
+  const placeMatch = input.match(/\/maps\/place\/([^/@?]+)/);
   if (placeMatch && placeMatch[1]) {
     try {
       result.name = decodeURIComponent(placeMatch[1].replace(/\+/g, ' '));
@@ -58,8 +60,16 @@ export function parseGoogleMapsUrl(input: string): ParsedMapsData {
     return result;
   }
 
+  // Match !3d-6.491234!4d106.745678
+  const dataMatch = input.match(/!3d(-?\d+\.\d+)!4d(-?\d+\.\d+)/);
+  if (dataMatch) {
+    result.lat = parseFloat(dataMatch[1]);
+    result.lng = parseFloat(dataMatch[2]);
+    return result;
+  }
+
   // Match query parameter ?q=-6.491234,106.745678 or ?ll=-6.491234,106.745678
-  const qCoordMatch = input.match(/[?&](?:q|ll)=(-?\d+\.\d+),(-?\d+\.\d+)/);
+  const qCoordMatch = input.match(/[?&](?:q|ll|center)=(-?\d+\.\d+),(-?\d+\.\d+)/);
   if (qCoordMatch) {
     result.lat = parseFloat(qCoordMatch[1]);
     result.lng = parseFloat(qCoordMatch[2]);
@@ -72,6 +82,26 @@ export function parseGoogleMapsUrl(input: string): ParsedMapsData {
     result.lat = parseFloat(rawCoordMatch[1]);
     result.lng = parseFloat(rawCoordMatch[2]);
     return result;
+  }
+
+  // Match ?q=Place+Name,+Street+Address...
+  const qTextMatch = input.match(/[?&](?:q|query)=([^&]+)/);
+  if (qTextMatch) {
+    try {
+      const decodedQ = decodeURIComponent(qTextMatch[1].replace(/\+/g, ' '));
+      if (!/^-?\d+\.\d+[,\s]+-?\d+\.\d+$/.test(decodedQ)) {
+        const parts = decodedQ.split(',').map((s) => s.trim());
+        if (!result.name && parts.length > 0 && parts[0]) {
+          result.name = parts[0];
+        }
+        result.address = decodedQ;
+        if (parts.length > 2) {
+          result.area = parts[2];
+        } else if (parts.length > 1) {
+          result.area = parts[1];
+        }
+      }
+    } catch {}
   }
 
   return result;

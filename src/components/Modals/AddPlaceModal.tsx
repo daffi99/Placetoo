@@ -103,31 +103,39 @@ export const AddPlaceModal: React.FC<AddPlaceModalProps> = ({
             setCategory(guessCategory(data.name));
             fetchPhotosForPlace(data.name);
           }
+          if (data.area) {
+            setArea(data.area);
+          }
+          if (data.address) {
+            setAddress(data.address);
+          }
           if (data.lat && data.lng) {
             setLat(data.lat.toString());
             setLng(data.lng.toString());
             setExtractMessage('✅ Sukses! Nama tempat & koordinat otomatis terisi!');
 
-            // Auto reverse geocode area / city from coordinates
-            fetch(
-              `https://nominatim.openstreetmap.org/reverse?format=json&lat=${data.lat}&lon=${data.lng}`,
-              { headers: { 'Accept-Language': 'id' } }
-            )
-              .then((r) => r.json())
-              .then((rev) => {
-                if (rev && rev.address) {
-                  const city =
-                    rev.address.city ||
-                    rev.address.town ||
-                    rev.address.county ||
-                    rev.address.city_district ||
-                    rev.address.suburb ||
-                    '';
-                  if (city) setArea(city);
-                  if (rev.display_name) setAddress(rev.display_name);
-                }
-              })
-              .catch(() => {});
+            // Auto reverse geocode area / city only if missing
+            if (!data.area || !data.address) {
+              fetch(
+                `https://nominatim.openstreetmap.org/reverse?format=json&lat=${data.lat}&lon=${data.lng}`,
+                { headers: { 'Accept-Language': 'id' } }
+              )
+                .then((r) => r.json())
+                .then((rev) => {
+                  if (rev && rev.address) {
+                    const city =
+                      rev.address.city ||
+                      rev.address.town ||
+                      rev.address.county ||
+                      rev.address.city_district ||
+                      rev.address.suburb ||
+                      '';
+                    if (!data.area && city) setArea(city);
+                    if (!data.address && rev.display_name) setAddress(rev.display_name);
+                  }
+                })
+                .catch(() => {});
+            }
 
             setIsLoadingExtract(false);
             return;
@@ -144,6 +152,9 @@ export const AddPlaceModal: React.FC<AddPlaceModalProps> = ({
     let foundLng = parsed.lng;
     let foundName = parsed.name;
 
+    if (parsed.address) setAddress(parsed.address);
+    if (parsed.area) setArea(parsed.area);
+
     // Check if pasted string has text before url (e.g. "Madaya Coffee https://...")
     if (!foundName) {
       const parts = urlInput.split(/https?:\/\//);
@@ -155,6 +166,7 @@ export const AddPlaceModal: React.FC<AddPlaceModalProps> = ({
     if (foundName) {
       setName(foundName);
       setCategory(guessCategory(foundName));
+      fetchPhotosForPlace(foundName);
     }
 
     if (foundLat && foundLng) {
