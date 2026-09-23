@@ -1,40 +1,16 @@
 import { Place } from '../types/place';
-import { INITIAL_PLACES } from '../data/mockPlaces';
-
-const STORAGE_KEY = 'placetoo_places';
 
 export const placeService = {
-  // Read local cache
-  getLocalPlaces(): Place[] {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY);
-      if (saved) return JSON.parse(saved);
-    } catch (e) {
-      console.warn('Failed to read places from localStorage', e);
-    }
-    return INITIAL_PLACES;
-  },
-
-  // Save local cache
-  saveLocalPlaces(places: Place[]): void {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(places));
-    } catch (e) {
-      console.warn('Failed to write places to localStorage', e);
-    }
-  },
-
-  // Fetch places from Neon DB via /api/places, falling back to local storage
-  async fetchPlaces(): Promise<{ places: Place[]; fromDb: boolean }> {
+  // Fetch places directly from Database API (/api/places) - No LocalStorage!
+  async fetchPlaces(): Promise<Place[]> {
     try {
       const res = await fetch('/api/places');
       if (!res.ok) {
         throw new Error(`Server returned status ${res.status}`);
       }
       const data = await res.json();
-      if (data.success && data.fromDb && Array.isArray(data.places) && data.places.length > 0) {
-        // Map database row types if needed
-        const mappedPlaces: Place[] = data.places.map((p: any) => ({
+      if (data.success && Array.isArray(data.places)) {
+        return data.places.map((p: any) => ({
           id: p.id,
           name: p.name,
           category: p.category,
@@ -53,52 +29,73 @@ export const placeService = {
           isFavorite: Boolean(p.isFavorite),
           createdAt: Number(p.createdAt) || Date.now(),
         }));
-
-        this.saveLocalPlaces(mappedPlaces);
-        return { places: mappedPlaces, fromDb: true };
       }
     } catch (err) {
-      console.info('API fetch failed or not yet deployed with DB, using local storage:', err);
+      console.error('Failed to fetch places from DB API:', err);
     }
-
-    // Fallback to local storage
-    return { places: this.getLocalPlaces(), fromDb: false };
+    return [];
   },
 
-  // Save/Create a place
-  async createPlace(place: Place): Promise<void> {
+  // Save / Create a place in Database
+  async createPlace(place: Place): Promise<boolean> {
     try {
-      await fetch('/api/places', {
+      const res = await fetch('/api/places', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(place),
       });
+      return res.ok;
     } catch (err) {
-      console.warn('Background sync failed to save place to DB:', err);
+      console.error('Failed to save place to DB:', err);
+      return false;
     }
   },
 
-  // Update a place
-  async updatePlace(place: Place): Promise<void> {
+  // Update a place in Database
+  async updatePlace(place: Place): Promise<boolean> {
     try {
-      await fetch('/api/places', {
+      const res = await fetch('/api/places', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(place),
       });
+      return res.ok;
     } catch (err) {
-      console.warn('Background sync failed to update place in DB:', err);
+      console.error('Failed to update place in DB:', err);
+      return false;
     }
   },
 
-  // Delete a place
-  async deletePlace(id: string): Promise<void> {
+  // Delete a place from Database
+  async deletePlace(id: string): Promise<boolean> {
     try {
-      await fetch(`/api/places?id=${encodeURIComponent(id)}`, {
+      const res = await fetch(`/api/places?id=${encodeURIComponent(id)}`, {
         method: 'DELETE',
       });
+      return res.ok;
     } catch (err) {
-      console.warn('Background sync failed to delete place from DB:', err);
+      console.error('Failed to delete place from DB:', err);
+      return false;
+    }
+  },
+
+  // One-time automatic migration: if browser has existing localStorage data,
+  // upload them to the server database and clean up localStorage.
+  async migrateFromLocalStorage(): Promise<void> {
+    try {
+      const raw = localStorage.getItem('placetoo_places');
+      if (!raw) return;
+      const localPlaces = JSON.parse(raw);
+      if (Array.isArray(localPlaces) && localPlaces.length > 0) {
+        console.log(`Migrating ${localPlaces.length} places from LocalStorage to Neon DB...`);
+        for (const place of localPlaces) {
+          await this.createPlace(place);
+        }
+        localStorage.removeItem('placetoo_places');
+        console.log('LocalStorage migration to Neon DB completed!');
+      }
+    } catch (err) {
+      console.warn('Error during one-time local storage migration:', err);
     }
   },
 };

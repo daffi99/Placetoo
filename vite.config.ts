@@ -1,5 +1,10 @@
 import { defineConfig, Plugin } from 'vite';
 import react from '@vitejs/plugin-react';
+import { neon } from '@neondatabase/serverless';
+import dotenv from 'dotenv';
+
+dotenv.config();
+dotenv.config({ path: '.env.local' });
 
 // Anti-Listicle Filter: Discard generic blog roundups unless they explicitly mention the place name
 const LISTICLE_REGEX =
@@ -181,6 +186,85 @@ async function searchBingImages(query: string, limit = 18) {
   return results;
 }
 
+let inMemoryPlaces: any[] = [
+  {
+    id: 'asap-isep-kadudampit',
+    name: 'Asap Isep',
+    category: 'coffee',
+    lat: -6.841127,
+    lng: 106.926975,
+    address: 'BumiBagja Food Forest, Desa Gede Pangrango, Kec. Kadudampit',
+    area: 'Kadudampit',
+    priceRange: 'Rp 30–60 rb',
+    rating: 4.8,
+    reviewCount: 320,
+    photoUrl: 'https://tse4.mm.bing.net/th/id/OIP.vCcLW-KMqyUzPdE1MBQCpAAAAA?r=0&pid=Api',
+    threadsUrl: 'https://www.instagram.com/asap_isep/',
+    notes: 'Tempat ngopi syahdu di tengah hutan Kadudampit, adem dan asri banget.',
+    googleMapsUrl: 'https://maps.google.com/?q=-6.841127,106.926975',
+    isVisited: false,
+    isFavorite: false,
+    createdAt: Date.now() - 1000 * 60 * 60 * 24 * 1,
+  },
+  {
+    id: 'kopi-sabuga-bogor',
+    name: 'Kopi Sabuga',
+    category: 'coffee',
+    lat: -6.60417,
+    lng: 106.80389,
+    address: 'Jl. Bangka No.16, Baranangsiang, Kec. Bogor Timur',
+    area: 'Bogor',
+    priceRange: 'Rp 25–50 rb',
+    rating: 4.7,
+    reviewCount: 480,
+    photoUrl: 'https://tse2.mm.bing.net/th/id/OIP.tjMDY_W2p2A1uHv62OH99gHaJQ?r=0&pid=Api',
+    threadsUrl: 'https://www.instagram.com',
+    notes: 'Kopi nikmat di tengah kota Bogor dengan suasana santai.',
+    googleMapsUrl: 'https://maps.google.com/?q=Kopi+Sabuga+Jalan+Bangka+No.16+Bogor',
+    isVisited: false,
+    isFavorite: false,
+    createdAt: Date.now() - 1000 * 60 * 60 * 24 * 2,
+  },
+  {
+    id: 'mugi-house-jakarta',
+    name: 'Mugi House',
+    category: 'coffee',
+    lat: -6.23667,
+    lng: 106.80917,
+    address: 'Jl. Gunawarman No.16, Selong, Kec. Kebayoran Baru',
+    area: 'Daerah Khusus Ibukota Jakarta',
+    priceRange: 'Rp 40–80 rb',
+    rating: 4.8,
+    reviewCount: 260,
+    photoUrl: 'https://tse4.mm.bing.net/th/id/OIP.COC85r_6e4uuvYKVIh9PywHaNJ?r=0&pid=Api',
+    threadsUrl: 'https://www.instagram.com',
+    notes: 'Kafe aesthetic di area Gunawarman Jaksel.',
+    googleMapsUrl: 'https://maps.google.com/?q=Mugi+House+Gunawarman+Jakarta',
+    isVisited: false,
+    isFavorite: false,
+    createdAt: Date.now() - 1000 * 60 * 60 * 24 * 3,
+  },
+  {
+    id: 'madaya-coffee-kemang',
+    name: 'Madaya Coffee',
+    category: 'coffee',
+    lat: -6.494799,
+    lng: 106.746199,
+    address: 'Kawasan Zona Madina, Jl. Raya Parung No.KM 42, Jampang, Kemang',
+    area: 'Kemang',
+    priceRange: 'Rp 30–60 rb',
+    rating: 4.9,
+    reviewCount: 1374,
+    photoUrl: 'https://images.unsplash.com/photo-1554118811-1e0d58224f24?auto=format&fit=crop&w=800&q=80',
+    threadsUrl: 'https://www.threads.net',
+    notes: 'Tempatnya cozy banget semi-outdoor, recommended coba donat kampung sama es kopi madaya!',
+    googleMapsUrl: 'https://maps.google.com/?q=-6.494799,106.746199',
+    isVisited: false,
+    isFavorite: true,
+    createdAt: Date.now() - 1000 * 60 * 60 * 24 * 4,
+  },
+];
+
 function mapsResolverPlugin(): Plugin {
   return {
     name: 'maps-resolver-plugin',
@@ -304,6 +388,156 @@ function mapsResolverPlugin(): Plugin {
             res.end(JSON.stringify({ error: err.message, results: [] }));
           }
           return;
+        }
+
+        // 3. Places CRUD API for Local Development
+        if (req.url && (req.url === '/api/places' || req.url.startsWith('/api/places?') || req.url.startsWith('/api/places/'))) {
+          res.setHeader('Content-Type', 'application/json');
+          const dbUrl = process.env.DATABASE_URL;
+          const sql = dbUrl ? neon(dbUrl) : null;
+
+          // Helper to read body
+          const readJsonBody = (): Promise<any> => {
+            return new Promise((resolve) => {
+              let body = '';
+              req.on('data', (chunk) => {
+                body += chunk;
+              });
+              req.on('end', () => {
+                try {
+                  resolve(body ? JSON.parse(body) : {});
+                } catch {
+                  resolve({});
+                }
+              });
+            });
+          };
+
+          try {
+            // GET
+            if (req.method === 'GET') {
+              if (sql) {
+                const rows = await sql`
+                  SELECT 
+                    id, name, category, lat, lng, address, area,
+                    price_range AS "priceRange",
+                    rating,
+                    review_count AS "reviewCount",
+                    photo_url AS "photoUrl",
+                    threads_url AS "threadsUrl",
+                    notes,
+                    google_maps_url AS "googleMapsUrl",
+                    is_visited AS "isVisited",
+                    is_favorite AS "isFavorite",
+                    created_at AS "createdAt"
+                  FROM places
+                  ORDER BY created_at DESC;
+                `;
+                res.end(JSON.stringify({ success: true, fromDb: true, places: rows }));
+                return;
+              } else {
+                res.end(JSON.stringify({ success: true, fromDb: false, places: inMemoryPlaces }));
+                return;
+              }
+            }
+
+            // POST
+            if (req.method === 'POST') {
+              const p = await readJsonBody();
+              const id = p.id || `place-${Date.now()}`;
+              const createdAt = p.createdAt || Date.now();
+
+              if (sql) {
+                await sql`
+                  INSERT INTO places (
+                    id, name, category, lat, lng, address, area,
+                    price_range, rating, review_count, photo_url,
+                    threads_url, notes, google_maps_url,
+                    is_visited, is_favorite, created_at
+                  ) VALUES (
+                    ${id}, ${p.name}, ${p.category || 'coffee'}, ${p.lat}, ${p.lng},
+                    ${p.address || null}, ${p.area || null}, ${p.priceRange || null},
+                    ${p.rating || null}, ${p.reviewCount || null}, ${p.photoUrl || null},
+                    ${p.threadsUrl || null}, ${p.notes || null}, ${p.googleMapsUrl || null},
+                    ${p.isVisited || false}, ${p.isFavorite || false}, ${createdAt}
+                  )
+                  ON CONFLICT (id) DO UPDATE SET
+                    name = EXCLUDED.name,
+                    category = EXCLUDED.category,
+                    lat = EXCLUDED.lat,
+                    lng = EXCLUDED.lng,
+                    address = EXCLUDED.address,
+                    area = EXCLUDED.area,
+                    price_range = EXCLUDED.price_range,
+                    rating = EXCLUDED.rating,
+                    review_count = EXCLUDED.review_count,
+                    photo_url = EXCLUDED.photo_url,
+                    threads_url = EXCLUDED.threads_url,
+                    notes = EXCLUDED.notes,
+                    google_maps_url = EXCLUDED.google_maps_url,
+                    is_visited = EXCLUDED.is_visited,
+                    is_favorite = EXCLUDED.is_favorite;
+                `;
+              } else {
+                inMemoryPlaces = [
+                  { ...p, id, createdAt },
+                  ...inMemoryPlaces.filter((item) => item.id !== id),
+                ];
+              }
+              res.statusCode = 201;
+              res.end(JSON.stringify({ success: true, id }));
+              return;
+            }
+
+            // PUT
+            if (req.method === 'PUT') {
+              const p = await readJsonBody();
+              if (sql) {
+                await sql`
+                  UPDATE places SET
+                    name = ${p.name},
+                    category = ${p.category || 'coffee'},
+                    lat = ${p.lat},
+                    lng = ${p.lng},
+                    address = ${p.address || null},
+                    area = ${p.area || null},
+                    price_range = ${p.priceRange || null},
+                    rating = ${p.rating || null},
+                    review_count = ${p.reviewCount || null},
+                    photo_url = ${p.photoUrl || null},
+                    threads_url = ${p.threadsUrl || null},
+                    notes = ${p.notes || null},
+                    google_maps_url = ${p.googleMapsUrl || null},
+                    is_visited = ${p.isVisited || false},
+                    is_favorite = ${p.isFavorite || false}
+                  WHERE id = ${p.id};
+                `;
+              } else {
+                inMemoryPlaces = inMemoryPlaces.map((item) =>
+                  item.id === p.id ? { ...item, ...p } : item
+                );
+              }
+              res.end(JSON.stringify({ success: true }));
+              return;
+            }
+
+            // DELETE
+            if (req.method === 'DELETE') {
+              const urlObj = new URL(req.url, 'http://localhost');
+              const id = urlObj.searchParams.get('id');
+              if (sql && id) {
+                await sql`DELETE FROM places WHERE id = ${id};`;
+              } else if (id) {
+                inMemoryPlaces = inMemoryPlaces.filter((item) => item.id !== id);
+              }
+              res.end(JSON.stringify({ success: true }));
+              return;
+            }
+          } catch (err: any) {
+            res.statusCode = 500;
+            res.end(JSON.stringify({ error: err.message }));
+            return;
+          }
         }
 
         next();

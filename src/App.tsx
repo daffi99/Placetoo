@@ -12,16 +12,27 @@ import { SettingsModal } from './components/Modals/SettingsModal';
 import { List } from 'lucide-react';
 
 export const App: React.FC = () => {
-  // Places state with LocalStorage and Neon Postgres sync
-  const [places, setPlaces] = useState<Place[]>(() => placeService.getLocalPlaces());
+  // Places state loaded directly from Neon PostgreSQL Database (PWA-ready, no localStorage reliance)
+  const [places, setPlaces] = useState<Place[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
 
-  // Fetch places from Neon DB on initial mount
+  // Initialize places from Server Database on mount
   useEffect(() => {
-    placeService.fetchPlaces().then((res) => {
-      if (res.places && res.places.length > 0) {
-        setPlaces(res.places);
+    let isMounted = true;
+    async function loadInitialPlaces() {
+      setIsLoading(true);
+      // Auto-migrate any residual localStorage data if any existed previously
+      await placeService.migrateFromLocalStorage();
+      const serverPlaces = await placeService.fetchPlaces();
+      if (isMounted) {
+        setPlaces(serverPlaces);
+        setIsLoading(false);
       }
-    });
+    }
+    loadInitialPlaces();
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   // Selected place for bottom card preview
@@ -50,11 +61,6 @@ export const App: React.FC = () => {
 
   // User GPS Location
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
-
-  // Save places to LocalStorage
-  useEffect(() => {
-    localStorage.setItem('placetoo_places', JSON.stringify(places));
-  }, [places]);
 
   // Save Gemini Key to LocalStorage
   const handleSaveApiKey = (key: string) => {
@@ -183,14 +189,30 @@ export const App: React.FC = () => {
   };
 
   // Reset to initial
-  const handleResetData = () => {
+  const handleResetData = async () => {
     setPlaces(INITIAL_PLACES);
     setSelectedPlace(null);
-    placeService.saveLocalPlaces(INITIAL_PLACES);
+    for (const p of INITIAL_PLACES) {
+      await placeService.createPlace(p);
+    }
+  };
+
+  const handleImportData = async (importedPlaces: Place[]) => {
+    setPlaces(importedPlaces);
+    for (const p of importedPlaces) {
+      await placeService.createPlace(p);
+    }
   };
 
   return (
     <div className="relative w-screen h-screen overflow-hidden bg-slate-100 flex flex-col font-sans select-none">
+      {/* Loading from Neon Database indicator */}
+      {isLoading && places.length === 0 && (
+        <div className="absolute top-20 left-1/2 -translate-x-1/2 z-[450] bg-slate-900/90 backdrop-blur-md text-white px-4 py-2 rounded-full text-xs font-medium shadow-lg flex items-center gap-2 animate-pulse">
+          <div className="w-2.5 h-2.5 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin" />
+          <span>Memuat kafe dari database...</span>
+        </div>
+      )}
       {/* Top Navbar: Search + Filters */}
       <TopNavbar
         searchQuery={searchQuery}
@@ -280,7 +302,7 @@ export const App: React.FC = () => {
         onSaveJawgApiKey={handleSaveJawgApiKey}
         onResetData={handleResetData}
         places={places}
-        onImportData={setPlaces}
+        onImportData={handleImportData}
       />
     </div>
   );
