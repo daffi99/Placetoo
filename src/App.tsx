@@ -237,7 +237,7 @@ export const App: React.FC = () => {
 
       {/* Floating Bottom List Toggle Button (Airbnb Style) */}
       {!selectedPlace && (
-        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-[450] animate-in fade-in duration-200">
+        <div className="absolute bottom-[max(1.5rem,calc(env(safe-area-inset-bottom)+0.75rem))] left-1/2 -translate-x-1/2 z-[450] animate-in fade-in duration-200">
           <button
             onClick={() => setIsListOpen(true)}
             className="bg-slate-900/95 hover:bg-slate-800 text-white backdrop-blur-md px-5 py-3 rounded-full shadow-airbnb flex items-center gap-2 text-xs font-bold active:scale-95 transition-all border border-slate-700/50"

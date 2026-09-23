@@ -30,7 +30,7 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({
   ];
 
   return (
-    <div className="absolute top-0 left-0 right-0 z-[400] px-4 pt-3 pb-2 bg-gradient-to-b from-white/95 via-white/80 to-transparent backdrop-blur-[2px] pointer-events-none">
+    <div className="absolute top-0 left-0 right-0 z-[400] px-4 pt-[max(0.75rem,calc(env(safe-area-inset-top)+0.5rem))] pb-2 pointer-events-none">
       <div className="max-w-md mx-auto space-y-2.5">
         {/* Search Bar + Add Button Row */}
         <div className="flex items-center gap-2 pointer-events-auto">

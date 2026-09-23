@@ -28,8 +28,27 @@ export const PlaceBottomCard: React.FC<PlaceBottomCardProps> = ({
     ? calculateDistance(userLocation.lat, userLocation.lng, place.lat, place.lng)
     : null;
 
+  // Open link avoiding iOS PWA in-app white sheet (SFSafariViewController)
+  const openExternal = (url: string) => {
+    const isIOS =
+      /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+      (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    const isStandalone =
+      window.matchMedia('(display-mode: standalone)').matches ||
+      (window.navigator as any).standalone;
+
+    if (isStandalone || isIOS) {
+      // In iOS PWA, window.location.href delegates to the native Google Maps app
+      // or external Safari directly without opening the white in-app webview sheet
+      window.location.href = url;
+    } else {
+      window.open(url, '_blank', 'noopener,noreferrer');
+    }
+  };
+
   const handleOpenMaps = () => {
-    // If the place has a real Google Maps place profile or shortlink, use it
+    let targetUrl = '';
+    // If place has a specific Google Maps place profile or shortlink, use it
     if (
       place.googleMapsUrl &&
       !place.googleMapsUrl.includes('?q=-') &&
@@ -38,20 +57,21 @@ export const PlaceBottomCard: React.FC<PlaceBottomCardProps> = ({
         place.googleMapsUrl.includes('maps.app.goo.gl') ||
         place.googleMapsUrl.includes('goo.gl'))
     ) {
-      window.open(place.googleMapsUrl, '_blank');
-      return;
+      targetUrl = place.googleMapsUrl;
+    } else {
+      // Universal link that iOS and Android hand off to the native Google Maps app
+      const query = `${place.name} ${place.area || place.address || ''}`.trim();
+      targetUrl = `https://maps.google.com/?q=${encodeURIComponent(query)}`;
     }
-    // Always pinpoint by exact place name and area so Google Maps selects the business profile
-    const query = `${place.name} ${place.area || place.address || ''}`.trim();
-    const url = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
-    window.open(url, '_blank');
+
+    openExternal(targetUrl);
   };
 
   const handleOpenNavigation = () => {
-    // Direct navigation to the exact place name
     const destination = `${place.name}, ${place.area || ''}`.trim();
-    const url = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(destination)}`;
-    window.open(url, '_blank');
+    // Universal directions link to native Google Maps
+    const url = `https://maps.google.com/maps?daddr=${encodeURIComponent(destination)}`;
+    openExternal(url);
   };
 
   const getCategoryBadge = (cat: string) => {
@@ -72,8 +92,8 @@ export const PlaceBottomCard: React.FC<PlaceBottomCardProps> = ({
   const badge = getCategoryBadge(place.category);
 
   return (
-    <div className="absolute bottom-5 left-4 right-4 z-[500] max-w-md mx-auto animate-in fade-in slide-in-from-bottom-5 duration-300">
-      <div className="bg-white rounded-3xl shadow-airbnb overflow-hidden border border-slate-100/90 relative">
+    <div className="absolute bottom-[max(1.75rem,calc(env(safe-area-inset-bottom)+0.75rem))] left-3.5 right-3.5 sm:left-4 sm:right-4 z-[500] max-w-md mx-auto animate-in fade-in slide-in-from-bottom-5 duration-300">
+      <div className="bg-white rounded-3xl shadow-airbnb overflow-hidden border border-slate-100/90 relative max-h-[84vh] flex flex-col">
         {/* Floating Top Controls */}
         <div className="absolute top-3 left-3 right-3 z-10 flex justify-between items-center pointer-events-none">
           <button
@@ -127,7 +147,7 @@ export const PlaceBottomCard: React.FC<PlaceBottomCardProps> = ({
           {place.photoUrl && (
             <div
               onClick={onCenter}
-              className="relative h-40 w-full overflow-hidden bg-slate-100 cursor-pointer group"
+              className="relative h-36 sm:h-40 w-full overflow-hidden bg-slate-100 cursor-pointer group shrink-0"
               title="Pusatkan di peta"
             >
               <img
@@ -150,7 +170,7 @@ export const PlaceBottomCard: React.FC<PlaceBottomCardProps> = ({
           )}
 
           {/* Details Section */}
-          <div className="p-4 space-y-2.5">
+          <div className="p-3.5 sm:p-4 space-y-2 pb-3.5 sm:pb-4">
             <div className="flex justify-between items-start">
               <div onClick={onCenter} className="cursor-pointer group flex-1">
                 <h3 className="font-bold text-lg text-slate-900 leading-snug group-hover:text-emerald-700 transition-colors">
@@ -224,15 +244,14 @@ export const PlaceBottomCard: React.FC<PlaceBottomCardProps> = ({
               </button>
 
               {place.threadsUrl && (
-                <a
-                  href={place.threadsUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="w-10 h-10 rounded-xl border border-slate-200 bg-white flex items-center justify-center text-slate-600 hover:bg-slate-50 transition-all shrink-0"
+                <button
+                  type="button"
+                  onClick={() => place.threadsUrl && openExternal(place.threadsUrl)}
+                  className="w-10 h-10 rounded-xl border border-slate-200 bg-white flex items-center justify-center text-slate-600 hover:bg-slate-50 transition-all shrink-0 cursor-pointer"
                   title="Lihat Threads"
                 >
                   <ExternalLink size={15} />
-                </a>
+                </button>
               )}
             </div>
           </div>
