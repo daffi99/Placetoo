@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { Place, PlaceCategory } from '../../types/place';
-import { X, Sparkles, Link as LinkIcon, Image, Check, Loader2, Search } from 'lucide-react';
+import { X, Sparkles, Link as LinkIcon, Image, Check, Loader2, Search, ClipboardPaste } from 'lucide-react';
 import { parseGoogleMapsUrl } from '../../utils/geo';
 import { getCategoryIcon } from '../../utils/categoryIcons';
 import { ImageSearchModal } from './ImageSearchModal';
+import { readImageOrUrlFromClipboard, extractImageFromClipboardEvent } from '../../utils/imageHelper';
 
 interface AddPlaceModalProps {
   isOpen: boolean;
@@ -47,6 +48,39 @@ export const AddPlaceModal: React.FC<AddPlaceModalProps> = ({
   >([]);
   const [isSearchingPhotos, setIsSearchingPhotos] = useState(false);
   const [isImageSearchOpen, setIsImageSearchOpen] = useState(false);
+  const [clipboardFeedback, setClipboardFeedback] = useState<string | null>(null);
+
+  const handlePasteImageFromClipboard = async () => {
+    try {
+      setClipboardFeedback('⏳ Membaca clipboard...');
+      const res = await readImageOrUrlFromClipboard();
+      if (res && res.data) {
+        setPhotoUrl(res.data);
+        setClipboardFeedback(
+          res.type === 'image'
+            ? '✅ Gambar dari clipboard berhasil ditempel!'
+            : '✅ Link gambar dari clipboard berhasil ditempel!'
+        );
+        setTimeout(() => setClipboardFeedback(null), 3000);
+      } else {
+        setClipboardFeedback('ℹ️ Tidak ada gambar atau URL gambar di clipboard.');
+        setTimeout(() => setClipboardFeedback(null), 3000);
+      }
+    } catch {
+      setClipboardFeedback('⚠️ Gagal membaca clipboard.');
+      setTimeout(() => setClipboardFeedback(null), 3000);
+    }
+  };
+
+  const handleModalPaste = async (e: React.ClipboardEvent) => {
+    // If the user pasted an image file directly (Ctrl+V / Cmd+V)
+    const data = await extractImageFromClipboardEvent(e);
+    if (data) {
+      setPhotoUrl(data);
+      setClipboardFeedback('✅ Gambar berhasil ditempel dari clipboard!');
+      setTimeout(() => setClipboardFeedback(null), 3000);
+    }
+  };
 
   const fetchPhotosForPlace = async (query: string) => {
     if (!query || query.trim().length < 2) return;
@@ -346,7 +380,10 @@ export const AddPlaceModal: React.FC<AddPlaceModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-[700] bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200 overflow-y-auto">
+    <div
+      onPaste={handleModalPaste}
+      className="fixed inset-0 z-[700] bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200 overflow-y-auto"
+    >
       <div className="bg-white rounded-3xl w-full max-w-md shadow-2xl overflow-hidden my-auto max-h-[90vh] flex flex-col">
         {/* Header */}
         <div className="p-4 border-b border-slate-100 flex items-center justify-between sticky top-0 bg-white z-10">
@@ -622,23 +659,39 @@ export const AddPlaceModal: React.FC<AddPlaceModalProps> = ({
                   </div>
                 )}
 
-                {/* Always-visible manual photo URL input */}
-                <div className="flex gap-1.5 items-center">
-                  <input
-                    type="url"
-                    placeholder="Atau paste URL foto manual..."
-                    value={photoUrl}
-                    onChange={(e) => setPhotoUrl(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs outline-none focus:border-emerald-500 focus:bg-white transition-all"
-                  />
-                  {photoUrl && (
+                {/* Always-visible manual photo URL input with Paste button */}
+                <div className="space-y-1">
+                  <div className="flex gap-1.5 items-center">
+                    <input
+                      type="url"
+                      placeholder="Atau paste URL foto manual..."
+                      value={photoUrl}
+                      onChange={(e) => setPhotoUrl(e.target.value)}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs outline-none focus:border-emerald-500 focus:bg-white transition-all"
+                    />
                     <button
                       type="button"
-                      onClick={() => setPhotoUrl('')}
-                      className="px-2.5 py-2 text-xs text-rose-600 hover:bg-rose-50 rounded-xl font-semibold shrink-0 border border-slate-200 active:scale-95 transition-all"
+                      onClick={handlePasteImageFromClipboard}
+                      className="px-2.5 py-2 text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-semibold shrink-0 border border-slate-200 active:scale-95 transition-all flex items-center gap-1 cursor-pointer"
+                      title="Paste gambar langsung dari clipboard (Ctrl+V / Screenshot / Copy Image)"
                     >
-                      Hapus
+                      <ClipboardPaste size={14} className="text-emerald-600" />
+                      <span className="hidden sm:inline">Paste Foto</span>
                     </button>
+                    {photoUrl && (
+                      <button
+                        type="button"
+                        onClick={() => setPhotoUrl('')}
+                        className="px-2.5 py-2 text-xs text-rose-600 hover:bg-rose-50 rounded-xl font-semibold shrink-0 border border-slate-200 active:scale-95 transition-all cursor-pointer"
+                      >
+                        Hapus
+                      </button>
+                    )}
+                  </div>
+                  {clipboardFeedback && (
+                    <p className="text-[11px] text-emerald-600 font-medium animate-in fade-in duration-200">
+                      {clipboardFeedback}
+                    </p>
                   )}
                 </div>
               </div>
