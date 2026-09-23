@@ -92,8 +92,8 @@ export const PlaceBottomCard: React.FC<PlaceBottomCardProps> = ({
   const badge = getCategoryBadge(place.category);
 
   return (
-    <div className="absolute bottom-[max(1.75rem,calc(env(safe-area-inset-bottom)+0.75rem))] left-3.5 right-3.5 sm:left-4 sm:right-4 z-[500] max-w-md mx-auto animate-in fade-in slide-in-from-bottom-5 duration-300">
-      <div className="bg-white rounded-3xl shadow-airbnb overflow-hidden border border-slate-100/90 relative max-h-[84vh] flex flex-col">
+    <div className="absolute bottom-[max(2.75rem,calc(env(safe-area-inset-bottom)+1.75rem))] left-3.5 right-3.5 sm:left-4 sm:right-4 z-[500] max-w-md mx-auto animate-in fade-in slide-in-from-bottom-5 duration-300">
+      <div className="bg-white rounded-3xl shadow-airbnb overflow-hidden border border-slate-100/90 relative max-h-[82vh] flex flex-col">
         {/* Floating Top Controls */}
         <div className="absolute top-3 left-3 right-3 z-10 flex justify-between items-center pointer-events-none">
           <button
@@ -170,7 +170,7 @@ export const PlaceBottomCard: React.FC<PlaceBottomCardProps> = ({
           )}
 
           {/* Details Section */}
-          <div className="p-3.5 sm:p-4 space-y-2 pb-3.5 sm:pb-4">
+          <div className="p-3.5 sm:p-4 space-y-2 pb-5 sm:pb-6">
             <div className="flex justify-between items-start">
               <div onClick={onCenter} className="cursor-pointer group flex-1">
                 <h3 className="font-bold text-lg text-slate-900 leading-snug group-hover:text-emerald-700 transition-colors">
