@@ -1,6 +1,6 @@
 import React from 'react';
 import { Place } from '../../types/place';
-import { X, Heart, Navigation, ExternalLink, CheckCircle2, MessageCircle, Trash2, MapPin, Star, Pencil } from 'lucide-react';
+import { X, Heart, Navigation, ExternalLink, CheckCircle2, MessageCircle, Trash2, MapPin, Star, Pencil, Crosshair } from 'lucide-react';
 import { calculateDistance, formatDistance } from '../../utils/geo';
 
 interface PlaceBottomCardProps {
@@ -10,6 +10,7 @@ interface PlaceBottomCardProps {
   onToggleVisited: (id: string) => void;
   onDeletePlace: (id: string) => void;
   onEditPlace?: (place: Place) => void;
+  onAdjustLocation?: (place: Place) => void;
   onCenter?: () => void;
   userLocation: { lat: number; lng: number } | null;
 }
@@ -21,6 +22,7 @@ export const PlaceBottomCard: React.FC<PlaceBottomCardProps> = ({
   onToggleVisited,
   onDeletePlace,
   onEditPlace,
+  onAdjustLocation,
   onCenter,
   userLocation,
 }) => {
@@ -105,6 +107,16 @@ export const PlaceBottomCard: React.FC<PlaceBottomCardProps> = ({
           </button>
 
           <div className="flex items-center gap-1.5 pointer-events-auto">
+            <button
+              type="button"
+              onClick={() => onAdjustLocation?.(place)}
+              className="w-8 h-8 rounded-full bg-white/90 backdrop-blur-md shadow-sm flex items-center justify-center text-slate-500 hover:text-emerald-600 hover:bg-white active:scale-90 transition-all cursor-pointer"
+              title="Geser / Atur Titik Pin di Peta"
+              aria-label="Atur Titik"
+            >
+              <Crosshair size={14} />
+            </button>
+
             <button
               onClick={() => onEditPlace?.(place)}
               className="w-8 h-8 rounded-full bg-white/90 backdrop-blur-md shadow-sm flex items-center justify-center text-slate-500 hover:text-slate-900 hover:bg-white active:scale-90 transition-all"

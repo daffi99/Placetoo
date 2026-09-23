@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Place, PlaceCategory } from '../../types/place';
-import { X, Check, Search, Image as ImageIcon, Sparkles, Star } from 'lucide-react';
+import { X, Check, Search, Image as ImageIcon, Sparkles, Star, Crosshair } from 'lucide-react';
 import { getCategoryIcon } from '../../utils/categoryIcons';
 import { ImageSearchModal } from './ImageSearchModal';
 
@@ -9,6 +9,7 @@ interface EditPlaceModalProps {
   onClose: () => void;
   place: Place | null;
   onSavePlace: (updated: Place) => void;
+  onAdjustLocation?: (place: Place) => void;
 }
 
 export const EditPlaceModal: React.FC<EditPlaceModalProps> = ({
@@ -16,6 +17,7 @@ export const EditPlaceModal: React.FC<EditPlaceModalProps> = ({
   onClose,
   place,
   onSavePlace,
+  onAdjustLocation,
 }) => {
   // Form fields
   const [name, setName] = useState('');
@@ -314,25 +316,41 @@ export const EditPlaceModal: React.FC<EditPlaceModalProps> = ({
             </div>
 
             {/* Coordinates */}
-            <div className="grid grid-cols-2 gap-2 bg-slate-50 p-2.5 rounded-xl border border-slate-200/70">
-              <div>
-                <label className="text-[10px] font-bold text-slate-500 mb-0.5 block">Latitude</label>
-                <input
-                  type="text"
-                  value={lat}
-                  onChange={(e) => setLat(e.target.value)}
-                  className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1 text-xs outline-none font-mono"
-                />
+            <div className="space-y-2 bg-slate-50 p-2.5 rounded-xl border border-slate-200/70">
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="text-[10px] font-bold text-slate-500 mb-0.5 block">Latitude</label>
+                  <input
+                    type="text"
+                    value={lat}
+                    onChange={(e) => setLat(e.target.value)}
+                    className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1 text-xs outline-none font-mono"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-bold text-slate-500 mb-0.5 block">Longitude</label>
+                  <input
+                    type="text"
+                    value={lng}
+                    onChange={(e) => setLng(e.target.value)}
+                    className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1 text-xs outline-none font-mono"
+                  />
+                </div>
               </div>
-              <div>
-                <label className="text-[10px] font-bold text-slate-500 mb-0.5 block">Longitude</label>
-                <input
-                  type="text"
-                  value={lng}
-                  onChange={(e) => setLng(e.target.value)}
-                  className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1 text-xs outline-none font-mono"
-                />
-              </div>
+
+              {place && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    onClose();
+                    onAdjustLocation?.(place);
+                  }}
+                  className="w-full py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-semibold rounded-xl text-xs flex items-center justify-center gap-1.5 border border-emerald-200 active:scale-95 transition-all cursor-pointer"
+                >
+                  <Crosshair size={14} className="text-emerald-600" />
+                  <span>Geser / Atur Titik Pin di Peta</span>
+                </button>
+              )}
             </div>
 
             {/* Submit & Cancel Buttons */}

@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import L from 'leaflet';
 import { Place } from '../../types/place';
-import { Palette, Navigation2, Plus, Minus, Maximize2, Sun, Lightbulb, Layers, Sparkles, Flower2 } from 'lucide-react';
+import { Palette, Navigation2, Plus, Minus, Maximize2, Sun, Lightbulb, Layers, Sparkles, Flower2, MapPin } from 'lucide-react';
 import { getCategorySvgString, getHeartSvgString } from '../../utils/categoryIcons';
 
 export type MapSkin = 'light' | 'sunny' | 'gray' | 'minimal' | 'pastel';
@@ -13,6 +13,9 @@ interface MapViewProps {
   userLocation: { lat: number; lng: number } | null;
   onLocateMe: () => void;
   jawgApiKey?: string;
+  isAdjustingPin?: boolean;
+  adjustingPlace?: Place | null;
+  onCenterChange?: (coords: { lat: number; lng: number }) => void;
 }
 
 export const MapView: React.FC<MapViewProps> = ({
@@ -22,6 +25,9 @@ export const MapView: React.FC<MapViewProps> = ({
   userLocation,
   onLocateMe,
   jawgApiKey,
+  isAdjustingPin = false,
+  adjustingPlace = null,
+  onCenterChange,
 }) => {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
@@ -152,6 +158,11 @@ export const MapView: React.FC<MapViewProps> = ({
     markersRef.current.clear();
 
     places.forEach((place) => {
+      // Hide static marker for place currently being adjusted
+      if (isAdjustingPin && adjustingPlace?.id === place.id) {
+        return;
+      }
+
       const isSelected = selectedPlace?.id === place.id;
       const iconSvg = getCategorySvgString(place.category, isSelected);
       const heartSvg = place.isFavorite ? getHeartSvgString() : '';
@@ -182,17 +193,50 @@ export const MapView: React.FC<MapViewProps> = ({
 
       markersRef.current.set(place.id, marker);
     });
-  }, [places, selectedPlace, onSelectPlace]);
+  }, [places, selectedPlace, onSelectPlace, isAdjustingPin, adjustingPlace]);
 
   // Automatically fly to & center map on selectedPlace
   useEffect(() => {
     const map = mapInstanceRef.current;
-    if (!map || !selectedPlace) return;
+    if (!map || !selectedPlace || isAdjustingPin) return;
 
     map.flyTo([selectedPlace.lat, selectedPlace.lng], 16, {
       duration: 0.8,
     });
-  }, [selectedPlace]);
+  }, [selectedPlace, isAdjustingPin]);
+
+  // Fly to high zoom when adjusting pin
+  useEffect(() => {
+    const map = mapInstanceRef.current;
+    if (!map || !isAdjustingPin || !adjustingPlace) return;
+
+    map.flyTo([adjustingPlace.lat, adjustingPlace.lng], 18, {
+      duration: 0.8,
+    });
+
+    if (onCenterChange) {
+      onCenterChange({ lat: adjustingPlace.lat, lng: adjustingPlace.lng });
+    }
+  }, [isAdjustingPin, adjustingPlace]);
+
+  // Track map center continuously when adjusting pin
+  useEffect(() => {
+    const map = mapInstanceRef.current;
+    if (!map || !isAdjustingPin || !onCenterChange) return;
+
+    const handleCenter = () => {
+      const center = map.getCenter();
+      onCenterChange({ lat: center.lat, lng: center.lng });
+    };
+
+    map.on('move', handleCenter);
+    map.on('moveend', handleCenter);
+
+    return () => {
+      map.off('move', handleCenter);
+      map.off('moveend', handleCenter);
+    };
+  }, [isAdjustingPin, onCenterChange]);
 
   // User GPS Pin
   useEffect(() => {
@@ -246,6 +290,26 @@ export const MapView: React.FC<MapViewProps> = ({
     <div className={`relative w-full h-full skin-${mapSkin}`}>
       {/* Map Canvas */}
       <div ref={mapContainerRef} className="w-full h-full z-0" />
+
+      {/* Center Pin Drop Indicator when in Pin Adjust Mode */}
+      {isAdjustingPin && (
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-full z-[450] pointer-events-none flex flex-col items-center select-none animate-in fade-in zoom-in-90 duration-200">
+          {adjustingPlace?.name && (
+            <div className="bg-slate-900/95 text-white text-[11px] font-bold px-3 py-1 rounded-full shadow-lg mb-1.5 border border-slate-700 whitespace-nowrap drop-shadow flex items-center gap-1">
+              <span>{adjustingPlace.name}</span>
+            </div>
+          )}
+          <div className="relative">
+            <div className="w-11 h-11 bg-emerald-600 text-white rounded-full shadow-2xl flex items-center justify-center border-2 border-white ring-4 ring-emerald-500/20">
+              <MapPin size={22} className="fill-white" />
+            </div>
+            {/* Center target dot */}
+            <div className="w-2.5 h-2.5 bg-slate-900 rounded-full border-2 border-white absolute -bottom-1 left-1/2 -translate-x-1/2"></div>
+          </div>
+          {/* Shadow */}
+          <div className="w-3.5 h-1.5 bg-black/40 rounded-full blur-[1px] mt-1.5"></div>
+        </div>
+      )}
 
       {/* Floating Controls (Right Side) */}
       <div className="absolute top-[max(9.75rem,calc(env(safe-area-inset-top)+8rem))] right-3.5 sm:right-4 z-[350] flex flex-col gap-2">

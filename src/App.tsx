@@ -9,12 +9,17 @@ import { PlaceListSheet } from './components/Cards/PlaceListSheet';
 import { AddPlaceModal } from './components/Modals/AddPlaceModal';
 import { EditPlaceModal } from './components/Modals/EditPlaceModal';
 import { SettingsModal } from './components/Modals/SettingsModal';
-import { List } from 'lucide-react';
+import { List, Crosshair, Check } from 'lucide-react';
 
 export const App: React.FC = () => {
   // Places state loaded directly from Neon PostgreSQL Database (PWA-ready, no localStorage reliance)
   const [places, setPlaces] = useState<Place[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+
+  // Pin Adjuster Mode
+  const [adjustingPlace, setAdjustingPlace] = useState<Place | null>(null);
+  const [tempCenterCoords, setTempCenterCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   // Initialize places from Server Database on mount
   useEffect(() => {
@@ -179,6 +184,37 @@ export const App: React.FC = () => {
     setEditingPlace(null);
   };
 
+  // Adjust place location (Pin Drag Mode)
+  const handleStartAdjustLocation = (place: Place) => {
+    setSelectedPlace(null);
+    setIsEditOpen(false);
+    setEditingPlace(null);
+    setIsListOpen(false);
+    setAdjustingPlace(place);
+    setTempCenterCoords({ lat: place.lat, lng: place.lng });
+  };
+
+  const handleSaveAdjustedPosition = () => {
+    if (!adjustingPlace || !tempCenterCoords) return;
+    const updated: Place = {
+      ...adjustingPlace,
+      lat: Number(tempCenterCoords.lat.toFixed(7)),
+      lng: Number(tempCenterCoords.lng.toFixed(7)),
+    };
+    handleSaveEditedPlace(updated);
+    setAdjustingPlace(null);
+    setSelectedPlace(updated);
+    setToastMessage(`✅ Titik "${updated.name}" berhasil digeser!`);
+    setTimeout(() => setToastMessage(null), 3500);
+  };
+
+  const handleCancelAdjust = () => {
+    if (adjustingPlace) {
+      setSelectedPlace(adjustingPlace);
+    }
+    setAdjustingPlace(null);
+  };
+
   // Delete place
   const handleDeletePlace = (id: string) => {
     setPlaces((prev) => prev.filter((p) => p.id !== id));
@@ -213,15 +249,37 @@ export const App: React.FC = () => {
           <span>Memuat kafe dari database...</span>
         </div>
       )}
-      {/* Top Navbar: Search + Filters */}
-      <TopNavbar
-        searchQuery={searchQuery}
-        onSearchChange={setSearchQuery}
-        activeFilter={activeFilter}
-        onSelectFilter={setActiveFilter}
-        onOpenAddModal={() => setIsAddOpen(true)}
-        onOpenSettings={() => setIsSettingsOpen(true)}
-      />
+      {/* Toast Notification */}
+      {toastMessage && (
+        <div className="fixed top-5 left-1/2 -translate-x-1/2 z-[600] bg-slate-900 text-white text-xs font-semibold px-4 py-2.5 rounded-full shadow-2xl border border-slate-700 animate-in fade-in slide-in-from-top-2 duration-200 flex items-center gap-2">
+          <span>{toastMessage}</span>
+        </div>
+      )}
+
+      {/* Top Navbar: Search + Filters (Hidden during pin adjustment) */}
+      {!adjustingPlace && (
+        <TopNavbar
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
+          activeFilter={activeFilter}
+          onSelectFilter={setActiveFilter}
+          onOpenAddModal={() => setIsAddOpen(true)}
+          onOpenSettings={() => setIsSettingsOpen(true)}
+        />
+      )}
+
+      {/* Pin Adjuster Instruction Banner (Top) */}
+      {adjustingPlace && (
+        <div className="absolute top-[max(1rem,calc(env(safe-area-inset-top)+0.5rem))] left-4 right-4 z-[500] max-w-sm mx-auto bg-slate-900/95 backdrop-blur-md text-white px-4 py-3 rounded-2xl shadow-airbnb border border-slate-700/80 animate-in fade-in slide-in-from-top-4 duration-300">
+          <div className="flex items-center gap-2 text-emerald-400 font-bold text-xs">
+            <Crosshair size={15} className="text-emerald-400 shrink-0" />
+            <span className="truncate">Atur Posisi: {adjustingPlace.name}</span>
+          </div>
+          <p className="text-[11px] text-slate-300 mt-1 leading-snug">
+            Geser & perbesar peta sampai pin di tengah pas di lokasi kafe/resto.
+          </p>
+        </div>
+      )}
 
       {/* Main Map View */}
       <div className="flex-1 w-full h-full relative">
@@ -232,11 +290,14 @@ export const App: React.FC = () => {
           userLocation={userLocation}
           onLocateMe={handleLocateMe}
           jawgApiKey={jawgApiKey}
+          isAdjustingPin={Boolean(adjustingPlace)}
+          adjustingPlace={adjustingPlace}
+          onCenterChange={(coords) => setTempCenterCoords(coords)}
         />
       </div>
 
       {/* Floating Bottom List Toggle Button (Airbnb Style) */}
-      {!selectedPlace && (
+      {!selectedPlace && !adjustingPlace && (
         <div className="absolute bottom-[max(2.75rem,calc(env(safe-area-inset-bottom)+1.75rem))] left-1/2 -translate-x-1/2 z-[450] animate-in fade-in duration-200">
           <button
             onClick={() => setIsListOpen(true)}
@@ -249,7 +310,7 @@ export const App: React.FC = () => {
       )}
 
       {/* Airbnb-style Floating Bottom Card when a pin is selected */}
-      {selectedPlace && (
+      {selectedPlace && !adjustingPlace && (
         <PlaceBottomCard
           place={selectedPlace}
           onClose={() => setSelectedPlace(null)}
@@ -257,9 +318,31 @@ export const App: React.FC = () => {
           onToggleVisited={handleToggleVisited}
           onDeletePlace={handleDeletePlace}
           onEditPlace={handleOpenEdit}
+          onAdjustLocation={handleStartAdjustLocation}
           onCenter={() => handleSelectPlace(selectedPlace)}
           userLocation={userLocation}
         />
+      )}
+
+      {/* Pin Adjuster Action Controls (Bottom) */}
+      {adjustingPlace && (
+        <div className="absolute bottom-[max(2.5rem,calc(env(safe-area-inset-bottom)+1.5rem))] left-4 right-4 z-[500] max-w-sm mx-auto flex gap-2.5 animate-in fade-in slide-in-from-bottom-4 duration-300">
+          <button
+            type="button"
+            onClick={handleCancelAdjust}
+            className="flex-1 py-3 bg-white/95 backdrop-blur-md hover:bg-slate-100 text-slate-700 font-bold rounded-2xl shadow-airbnb border border-slate-200 active:scale-95 transition-all text-xs cursor-pointer"
+          >
+            Batal
+          </button>
+          <button
+            type="button"
+            onClick={handleSaveAdjustedPosition}
+            className="flex-[1.6] py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-2xl shadow-airbnb active:scale-95 transition-all text-xs flex items-center justify-center gap-1.5 border border-emerald-500 cursor-pointer"
+          >
+            <Check size={16} strokeWidth={2.5} />
+            <span>Simpan Posisi Baru</span>
+          </button>
+        </div>
       )}
 
       {/* Expandable List Drawer */}
@@ -290,6 +373,7 @@ export const App: React.FC = () => {
           setEditingPlace(null);
         }}
         onSavePlace={handleSaveEditedPlace}
+        onAdjustLocation={handleStartAdjustLocation}
       />
 
       {/* Settings Modal */}
