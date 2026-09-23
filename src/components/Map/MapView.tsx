@@ -248,7 +248,7 @@ export const MapView: React.FC<MapViewProps> = ({
       <div ref={mapContainerRef} className="w-full h-full z-0" />
 
       {/* Floating Controls (Right Side) */}
-      <div className="absolute top-28 right-4 z-[500] flex flex-col gap-2">
+      <div className="absolute top-[max(9.75rem,calc(env(safe-area-inset-top)+8rem))] right-3.5 sm:right-4 z-[350] flex flex-col gap-2">
         {/* Locate Me Button */}
         <button
           onClick={onLocateMe}
