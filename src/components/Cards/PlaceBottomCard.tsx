@@ -29,21 +29,28 @@ export const PlaceBottomCard: React.FC<PlaceBottomCardProps> = ({
     : null;
 
   const handleOpenMaps = () => {
-    if (place.googleMapsUrl) {
+    // If the place has a real Google Maps place profile or shortlink, use it
+    if (
+      place.googleMapsUrl &&
+      !place.googleMapsUrl.includes('?q=-') &&
+      !place.googleMapsUrl.match(/\?q=-?\d+\.\d+,-?\d+\.\d+/) &&
+      (place.googleMapsUrl.includes('/place/') ||
+        place.googleMapsUrl.includes('maps.app.goo.gl') ||
+        place.googleMapsUrl.includes('goo.gl'))
+    ) {
       window.open(place.googleMapsUrl, '_blank');
       return;
     }
-    const url = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
-      place.name + ' ' + (place.area || '')
-    )}`;
+    // Always pinpoint by exact place name and area so Google Maps selects the business profile
+    const query = `${place.name} ${place.area || place.address || ''}`.trim();
+    const url = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
     window.open(url, '_blank');
   };
 
   const handleOpenNavigation = () => {
-    // Open in native Google Maps or Apple Maps app for directions
-    const url = `https://www.google.com/maps/dir/?api=1&destination=${place.lat},${place.lng}&destination_place_id=${encodeURIComponent(
-      place.name
-    )}`;
+    // Direct navigation to the exact place name
+    const destination = `${place.name}, ${place.area || ''}`.trim();
+    const url = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(destination)}`;
     window.open(url, '_blank');
   };
 

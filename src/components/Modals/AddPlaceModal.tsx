@@ -319,7 +319,11 @@ export const AddPlaceModal: React.FC<AddPlaceModalProps> = ({
       notes: notes.trim(),
       threadsUrl: threadsUrl.trim(),
       photoUrl: photoUrl.trim() || defaultPhoto,
-      googleMapsUrl: pastedUrl.match(/https?:\/\/[^\s]+/)?.[0] || `https://maps.google.com/?q=${latitude},${longitude}`,
+      googleMapsUrl:
+        pastedUrl.match(/https?:\/\/[^\s]+/)?.[0] ||
+        `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+          name.trim() + ' ' + (area.trim() || address.trim() || '')
+        )}`,
       isVisited: false,
       isFavorite: false,
       createdAt: Date.now(),

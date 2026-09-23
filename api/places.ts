@@ -17,7 +17,7 @@ const FALLBACK_PLACES = [
     photoUrl: 'https://indonesia-az.com/wp-content/uploads/2024/08/Area-depan-Asap-Isep-1024x767.jpeg',
     threadsUrl: '',
     notes: '',
-    googleMapsUrl: 'https://maps.google.com/?q=-6.841127,106.9243952',
+    googleMapsUrl: 'https://www.google.com/maps/search/?api=1&query=Asap+Isep+Kadudampit',
     isVisited: false,
     isFavorite: false,
     createdAt: 1790131354799,
@@ -36,7 +36,7 @@ const FALLBACK_PLACES = [
     photoUrl: 'https://ugc.production.linktr.ee/ddfd7716-050e-42ea-ad71-6d9d5302b579_IMG-1522.jpeg?io=true&size=avatar-v3_0',
     threadsUrl: '',
     notes: '',
-    googleMapsUrl: 'https://maps.google.com/?q=-6.6037549,106.8017841',
+    googleMapsUrl: 'https://www.google.com/maps/search/?api=1&query=Kopi+Sabuga+Bogor',
     isVisited: false,
     isFavorite: false,
     createdAt: 1790092927519,
@@ -55,7 +55,7 @@ const FALLBACK_PLACES = [
     photoUrl: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRWnDYjzBiajlgvAZ94eW25F77Nga8YFY080PWBmV0gEfado8SRTxlKu4fw&s=10',
     threadsUrl: '',
     notes: '',
-    googleMapsUrl: 'https://maps.google.com/?q=-6.2358685,106.8049313',
+    googleMapsUrl: 'https://www.google.com/maps/search/?api=1&query=Mugi+House+Jakarta',
     isVisited: false,
     isFavorite: false,
     createdAt: 1790092749118,
@@ -74,7 +74,7 @@ const FALLBACK_PLACES = [
     photoUrl: 'https://tse2.mm.bing.net/th/id/OIP.AyqMogbDe-cOvuvem798WgHaNK?r=0&pid=Api',
     threadsUrl: '',
     notes: '',
-    googleMapsUrl: 'https://maps.google.com/?q=-6.4735034,106.7283995',
+    googleMapsUrl: 'https://www.google.com/maps/search/?api=1&query=Madaya+Coffee+Kemang+Bogor',
     isVisited: false,
     isFavorite: false,
     createdAt: 1790092561370,
@@ -153,6 +153,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const id = p.id || `place-${Date.now()}`;
       const createdAt = p.createdAt || Date.now();
 
+      const rawMapsUrl = p.googleMapsUrl || '';
+      const isRawCoord = rawMapsUrl.includes('?q=-') || rawMapsUrl.match(/\?q=-?\d+\.\d+,-?\d+\.\d+/);
+      const mapsUrl =
+        rawMapsUrl && !isRawCoord
+          ? rawMapsUrl
+          : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+              p.name + ' ' + (p.area || p.address || '')
+            )}`;
+
       await sql`
         INSERT INTO places (
           id, name, category, lat, lng, address, area,
@@ -173,7 +182,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           ${p.photoUrl || null},
           ${p.threadsUrl || null},
           ${p.notes || null},
-          ${p.googleMapsUrl || null},
+          ${mapsUrl},
           ${p.isVisited || false},
           ${p.isFavorite || false},
           ${createdAt}
@@ -206,6 +215,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         return res.status(400).json({ error: 'Missing place id' });
       }
 
+      const rawMapsUrl = p.googleMapsUrl || '';
+      const isRawCoord = rawMapsUrl.includes('?q=-') || rawMapsUrl.match(/\?q=-?\d+\.\d+,-?\d+\.\d+/);
+      const mapsUrl =
+        rawMapsUrl && !isRawCoord
+          ? rawMapsUrl
+          : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+              p.name + ' ' + (p.area || p.address || '')
+            )}`;
+
       await sql`
         UPDATE places SET
           name = ${p.name},
@@ -220,7 +238,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           photo_url = ${p.photoUrl || null},
           threads_url = ${p.threadsUrl || null},
           notes = ${p.notes || null},
-          google_maps_url = ${p.googleMapsUrl || null},
+          google_maps_url = ${mapsUrl},
           is_visited = ${p.isVisited || false},
           is_favorite = ${p.isFavorite || false}
         WHERE id = ${p.id};

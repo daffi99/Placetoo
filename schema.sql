@@ -1,5 +1,5 @@
 -- ========================================================
--- PLACETOO DATABASE SCHEMA & EXACT USER SEED (NEON POSTGRESQL)
+-- PLACETOO DATABASE SCHEMA & PINPOINT SEED (NEON POSTGRESQL)
 -- ========================================================
 -- Jalankan query ini di Neon Console -> SQL Editor.
 -- ========================================================
@@ -29,7 +29,12 @@ CREATE TABLE IF NOT EXISTS places (
 CREATE INDEX IF NOT EXISTS idx_places_created_at ON places(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_places_category ON places(category);
 
--- 3. Seed data 4 tempat persis dari export Anda (Aman dijalankan berulang kali)
+-- 3. Update google_maps_url yang masih berupa koordinat mentah agar langsung pinpoint ke profil bisnis kafe
+UPDATE places 
+SET google_maps_url = 'https://www.google.com/maps/search/?api=1&query=' || REPLACE(name || ' ' || COALESCE(area, ''), ' ', '+')
+WHERE google_maps_url LIKE '%?q=%' OR google_maps_url IS NULL;
+
+-- 4. Masukkan / Update 4 kafe dengan direct business pinpoint
 INSERT INTO places (
   id, name, category, lat, lng, address, area,
   price_range, rating, review_count, photo_url,
@@ -50,7 +55,7 @@ INSERT INTO places (
   'https://indonesia-az.com/wp-content/uploads/2024/08/Area-depan-Asap-Isep-1024x767.jpeg',
   NULL,
   NULL,
-  'https://maps.google.com/?q=-6.841127,106.9243952',
+  'https://www.google.com/maps/search/?api=1&query=Asap+Isep+Kadudampit',
   FALSE,
   FALSE,
   1790131354799
@@ -69,7 +74,7 @@ INSERT INTO places (
   'https://ugc.production.linktr.ee/ddfd7716-050e-42ea-ad71-6d9d5302b579_IMG-1522.jpeg?io=true&size=avatar-v3_0',
   NULL,
   NULL,
-  'https://maps.google.com/?q=-6.6037549,106.8017841',
+  'https://www.google.com/maps/search/?api=1&query=Kopi+Sabuga+Bogor',
   FALSE,
   FALSE,
   1790092927519
@@ -88,7 +93,7 @@ INSERT INTO places (
   'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRWnDYjzBiajlgvAZ94eW25F77Nga8YFY080PWBmV0gEfado8SRTxlKu4fw&s=10',
   NULL,
   NULL,
-  'https://maps.google.com/?q=-6.2358685,106.8049313',
+  'https://www.google.com/maps/search/?api=1&query=Mugi+House+Jakarta',
   FALSE,
   FALSE,
   1790092749118
@@ -107,7 +112,7 @@ INSERT INTO places (
   'https://tse2.mm.bing.net/th/id/OIP.AyqMogbDe-cOvuvem798WgHaNK?r=0&pid=Api',
   NULL,
   NULL,
-  'https://maps.google.com/?q=-6.4735034,106.7283995',
+  'https://www.google.com/maps/search/?api=1&query=Madaya+Coffee+Kemang+Bogor',
   FALSE,
   FALSE,
   1790092561370
